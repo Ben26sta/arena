@@ -6,11 +6,24 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY || "";
 
 async function sbFetch(path, method="GET", body=null) {
   if(!SUPABASE_URL) return null;
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    method, headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": method==="POST"?"return=representation":"" },
-    body: body ? JSON.stringify(body) : null
-  });
-  return r.ok ? r.json() : null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      method,
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": method==="POST"?"return=representation":"return=minimal"
+      },
+      body: body ? JSON.stringify(body) : null
+    });
+    if(!r.ok) return null;
+    const text = await r.text();
+    if(!text || text.trim()==="") return {};
+    return JSON.parse(text);
+  } catch(e) {
+    return null;
+  }
 }
 
 // ── ROLES ──
