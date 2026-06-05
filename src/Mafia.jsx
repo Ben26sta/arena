@@ -70,6 +70,7 @@ export default function Mafia({onBack}) {
   // ── ONLINE POLLING ──
   useEffect(()=>{
     if(mode!=="online_wait"&&mode!=="game") return;
+    if(!roomCode) return;
     const poll = setInterval(async()=>{
       const data = await sbFetch(`mafia_rooms?code=eq.${roomCode}&select=*`);
       if(data&&data[0]) {
@@ -79,7 +80,7 @@ export default function Mafia({onBack}) {
       }
     }, 2000);
     return()=>clearInterval(poll);
-  },[mode,roomCode]);
+  },[mode,roomCode,phase]);
 
   function addLog(msg,color="#6b7280") { setLog(l=>[...l,{msg,color,t:new Date().toLocaleTimeString("ru",{hour:"2-digit",minute:"2-digit"})}]); }
 
@@ -135,14 +136,17 @@ export default function Mafia({onBack}) {
   // ── JOIN ONLINE ROOM ──
   async function joinRoom() {
     if(!myName.trim()||!joinCode.trim()) return;
-    if(SUPABASE_URL) {
-      const rooms=await sbFetch(`mafia_rooms?code=eq.${joinCode}`);
-      if(!rooms||!rooms[0]){alert("Комната не найдена!");return;}
-      setRoomCode(joinCode);
-      setMode("online_wait");
-    } else {
-      alert("Supabase не настроен. Пока только одиночная игра.");
-    }
+    if(!SUPABASE_URL) { alert("Supabase не настроен."); return; }
+    const rooms = await sbFetch(`mafia_rooms?code=eq.${joinCode.trim()}`);
+    if(!rooms||!rooms[0]) { alert("Комната не найдена! Проверь код."); return; }
+    const room = rooms[0];
+    const existing = room.players||[];
+    if(existing.find(p=>p.name===myName)) { alert("Игрок с таким именем уже в комнате!"); return; }
+    const newPlayers = [...existing, {name:myName, avatar:"🙂", isHost:false}];
+    await sbFetch(`mafia_rooms?code=eq.${joinCode.trim()}`, "PATCH", {players: newPlayers});
+    setRoomCode(joinCode.trim());
+    setPlayers(newPlayers);
+    setMode("online_wait");
   }
 
   // ── NIGHT ACTIONS ──
