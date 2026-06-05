@@ -97,29 +97,51 @@ export default function Mafia({onBack}) {
     } catch { return "..."; }
   }
 
-  // ── START SOLO GAME ──
+  // ── START GAME (solo or online) ──
   async function startSolo() {
-    if(!myName.trim()) return;
-    const aiCount=5;
-    const allPlayers=[
-      {name:myName,avatar:"😎",isMe:true,alive:true,idx:0},
-      ...AI_PLAYERS.slice(0,aiCount).map((a,i)=>({...a,isMe:false,alive:true,idx:i+1}))
-    ];
-    const roles=assignRoles(allPlayers.length);
-    const withRoles=allPlayers.map((p,i)=>({...p,role:roles[i]}));
-    setPlayers(withRoles);
-    setMyIdx(0);
-    setMyRole(withRoles[0].role);
-    setNight(1);
-    setLog([]);
-    setEliminated([]);
-    setAiDialogue([]);
-    setWinner(null);
-    setPhase("role_reveal");
-    setMode("game");
-    setNightTarget(null);
-    setHealTarget(null);
-    setVoteTarget(null);
+    try {
+      let allPlayers;
+      if(mode==="online_wait" && players.length>=2) {
+        // Online mode - use real players + fill with AI
+        const realPlayers = players.map((p,i)=>({...p, isMe:p.name===myName, alive:true, idx:i}));
+        const aiNeeded = Math.max(0, 6-realPlayers.length);
+        const aiList = AI_PLAYERS.slice(0,aiNeeded).map((a,i)=>({...a,isMe:false,alive:true,idx:realPlayers.length+i}));
+        allPlayers = [...realPlayers, ...aiList];
+      } else {
+        // Solo mode
+        const aiCount=5;
+        allPlayers=[
+          {name:myName,avatar:"😎",isMe:true,alive:true,idx:0},
+          ...AI_PLAYERS.slice(0,aiCount).map((a,i)=>({...a,isMe:false,alive:true,idx:i+1}))
+        ];
+      }
+      const roles=assignRoles(allPlayers.length);
+      const withRoles=allPlayers.map((p,i)=>({...p,role:roles[i]||"civilian"}));
+      const myPlayer=withRoles.find(p=>p.name===myName)||withRoles[0];
+      setPlayers(withRoles);
+      setMyIdx(myPlayer.idx||0);
+      setMyRole(myPlayer.role||"civilian");
+      setNight(1);
+      setLog([]);
+      setEliminated([]);
+      setAiDialogue([]);
+      setWinner(null);
+      setPhase("role_reveal");
+      setMode("game");
+      setNightTarget(null);
+      setHealTarget(null);
+      setVoteTarget(null);
+      // Sync to Supabase if online
+      if(roomCode && SUPABASE_URL) {
+        await sbFetch(`mafia_rooms?code=eq.${roomCode}`, "PATCH", {
+          players: withRoles,
+          phase: "role_reveal"
+        });
+      }
+    } catch(e) {
+      console.error("Start game error:", e);
+      alert("Ошибка запуска: " + e.message);
+    }
   }
 
   // ── HOST ONLINE ROOM ──
