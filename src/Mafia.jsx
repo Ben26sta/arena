@@ -306,11 +306,10 @@ export default function Mafia({onBack}) {
           </div>
         ))}
       </div>
-      {players.length>=4&&(
-        <button onClick={startSolo} style={{width:"100%",maxWidth:320,padding:14,background:"linear-gradient(135deg,#dc2626,#991b1b)",border:"none",borderRadius:12,color:"#fff",fontSize:15,cursor:"pointer",fontWeight:"bold"}}>
-          🎭 Начать игру ({players.length} игроков)
-        </button>
-      )}
+      <button onClick={startSolo} style={{width:"100%",maxWidth:320,padding:14,background:"linear-gradient(135deg,#dc2626,#991b1b)",border:"none",borderRadius:12,color:"#fff",fontSize:15,cursor:"pointer",fontWeight:"bold"}}>
+        🎭 Начать игру ({players.length} игроков)
+      </button>
+      {players.length<4&&<div style={{fontSize:12,color:"#555",textAlign:"center",marginTop:8}}>Минимум 4 игрока для полной игры. Можно начать с {players.length}.</div>}
       <button onClick={()=>setMode("menu")} style={{marginTop:12,background:"none",border:"1px solid #333",borderRadius:10,color:"#666",padding:"8px 20px",cursor:"pointer",fontSize:13}}>Отмена</button>
     </div>
   );
